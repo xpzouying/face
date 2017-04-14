@@ -1,57 +1,54 @@
-"""Performs face alignment and calculates L2 distance between the embeddings of two images."""
+# -*- coding: utf8 -*-
 
-# MIT License
-# 
-# Copyright (c) 2016 David Sandberg
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from scipy import misc
+
+import os
+import sys
+import argparse
 import tensorflow as tf
 import numpy as np
-import sys
-import os
-import argparse
-# import facenet
-
+from scipy import misc
+from flask import Flask, jsonify, Response
+from ngface.utils import prewhiten
 from facenet.align import detect_face
 from facenet import facenet as FN
-# import facenet.align.detect_face
+from ngface import face_models
 
-def main(args):
 
-    images = load_and_align_data(args.image_files, args.image_size, args.margin, args.gpu_memory_fraction)
+sess = tf.Session()
+app = Flask(__name__)
+
+
+@app.route('/version')
+def version():
+    return jsonify(version='ngface version 0.1')
+
+
+@app.route('/verify')
+def verify():
+    image_paths = [
+        '/tmp/1.jpg',
+        '/tmp/2.jpg'
+    ]
+    images = load_and_align_data(image_paths)
+
+    print(images)
+
+    dist_str = ''
     with tf.Graph().as_default():
-
         with tf.Session() as sess:
-            # Load the model
-            print('Model directory: %s' % args.model_dir)
-            meta_file, ckpt_file = FN.get_model_filenames(os.path.expanduser(args.model_dir))
-            print('Metagraph file: %s' % meta_file)
+            model_dir = '/Users/zouying/Models/pretrained_models/Facenet/20170216-091149'
+            meta_file, ckpt_file = face_models.get_model_filenames(model_dir)
+            
+            print('Meta file: %s' % meta_file)
             print('Checkpoint file: %s' % ckpt_file)
-            FN.load_model(args.model_dir, meta_file, ckpt_file)
+            FN.load_model(model_dir, meta_file, ckpt_file)
 
-            # Get input and output tensors
+             # Get input and output tensors
             images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
             embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
             phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
@@ -60,36 +57,29 @@ def main(args):
             feed_dict = { images_placeholder: images, phase_train_placeholder:False }
             emb = sess.run(embeddings, feed_dict=feed_dict)
      
-            nrof_images = len(args.image_files)
+            # nrof_images = len(args.image_files)
+            dist = np.sqrt(np.sum(np.square(np.subtract(emb[0,:], emb[1,:]))))
 
-            print('Images:')
-            for i in range(nrof_images):
-                print('%1d: %s' % (i, args.image_files[i]))
-            print('')
-
-            # Print distance matrix
-            print('Distance matrix')
-            print('    ', end='')
-            for i in range(nrof_images):
-                print('    %1d     ' % i, end='')
-            print('')
-            for i in range(nrof_images):
-                print('%1d  ' % i, end='')
-                for j in range(nrof_images):
-                    dist = np.sqrt(np.sum(np.square(np.subtract(emb[i,:], emb[j,:]))))
-                    print('  %1.4f  ' % dist, end='')
-                print('')
+            dist_str = '%1.4f' % dist
+            print('Distance: ', dist_str)
             
+            # return jsonify(result=dist_str)
             
-def load_and_align_data(image_paths, image_size, margin, gpu_memory_fraction):
 
+    return jsonify(result=dist_str)
+
+
+def load_and_align_data(image_paths):
+
+    image_size = 160
+    margin = 44
     minsize = 20 # minimum size of face
     threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
     factor = 0.709 # scale factor
     
     print('Creating networks and loading parameters')
     with tf.Graph().as_default():
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_memory_fraction)
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
         sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
         with sess.as_default():
             pnet, rnet, onet = detect_face.create_mtcnn(sess, None)
@@ -108,24 +98,33 @@ def load_and_align_data(image_paths, image_size, margin, gpu_memory_fraction):
         bb[3] = np.minimum(det[3]+margin/2, img_size[0])
         cropped = img[bb[1]:bb[3],bb[0]:bb[2],:]
         aligned = misc.imresize(cropped, (image_size, image_size), interp='bilinear')
-        prewhitened = FN.prewhiten(aligned)
+        prewhitened = prewhiten(aligned)
         img_list[i] = prewhitened
     images = np.stack(img_list)
     return images
 
+
+def main(args):
+    app.run(host=args.host, port=args.port)
+
+
 def parse_arguments(argv):
+    """Init argvs and parse
+
+    """
     parser = argparse.ArgumentParser()
-    
-    parser.add_argument('model_dir', type=str, 
-        help='Directory containing the meta_file and ckpt_file')
-    parser.add_argument('image_files', type=str, nargs='+', help='Images to compare')
-    parser.add_argument('--image_size', type=int,
-        help='Image size (height, width) in pixels.', default=160)
-    parser.add_argument('--margin', type=int,
-        help='Margin for the crop around the bounding box (height, width) in pixels.', default=44)
-    parser.add_argument('--gpu_memory_fraction', type=float,
-        help='Upper bound on the amount of GPU memory that will be used by the process.', default=1.0)
+
+    parser.add_argument('--host', type=str, default="127.0.0.1",
+                        help="Listen host. Default is 127.0.0.1")
+    parser.add_argument('--port', type=int, default=8080,
+                        help="Listen port. Default is 8080")
+    parser.add_argument('--model_dir', type=str,
+                        help="Directory of models")
+
     return parser.parse_args(argv)
 
+
 if __name__ == '__main__':
-    main(parse_arguments(sys.argv[1:]))
+    arg_parser = parse_arguments(sys.argv[1:])
+
+    main(arg_parser)
