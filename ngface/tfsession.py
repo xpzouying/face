@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 from face_models import load_model
-from ngface.graph import get_graph
+from ngface.tfgraph import get_graph
 
 _sess = None
 _model_path = "/Users/zouying/Models/pretrained_models/Facenet/20170216-091149"

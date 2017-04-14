@@ -15,11 +15,12 @@ from scipy import misc
 from flask import Flask, jsonify, Response
 from ngface.utils import prewhiten
 from facenet.align import detect_face
-from facenet import facenet as FN
 from ngface import face_models
+from ngface import tfgraph
 
 
-sess = tf.Session()
+graph = tfgraph.get_graph()
+sess = tf.Session(graph=graph)
 app = Flask(__name__)
 
 
@@ -39,32 +40,28 @@ def verify():
     print(images)
 
     dist_str = ''
-    with tf.Graph().as_default():
-        with tf.Session() as sess:
-            model_dir = '/Users/zouying/Models/pretrained_models/Facenet/20170216-091149'
-            meta_file, ckpt_file = face_models.get_model_filenames(model_dir)
-            
-            print('Meta file: %s' % meta_file)
-            print('Checkpoint file: %s' % ckpt_file)
-            FN.load_model(model_dir, meta_file, ckpt_file)
+    with graph.as_default():
+        # model_dir = '/Users/zouying/Models/pretrained_models/Facenet/20170216-091149'
+        # meta_file, ckpt_file = face_models.get_model_filenames(model_dir)
 
-             # Get input and output tensors
-            images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
-            embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
-            phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
+        # print('Meta file: %s' % meta_file)
+        # print('Checkpoint file: %s' % ckpt_file)
+        # load_model(sess, model_dir, meta_file, ckpt_file)
 
-            # Run forward pass to calculate embeddings
-            feed_dict = { images_placeholder: images, phase_train_placeholder:False }
-            emb = sess.run(embeddings, feed_dict=feed_dict)
-     
-            # nrof_images = len(args.image_files)
-            dist = np.sqrt(np.sum(np.square(np.subtract(emb[0,:], emb[1,:]))))
+        # Get input and output tensors
+        images_placeholder = graph.get_tensor_by_name("input:0")
+        embeddings = graph.get_tensor_by_name("embeddings:0")
+        phase_train_placeholder = graph.get_tensor_by_name("phase_train:0")
 
-            dist_str = '%1.4f' % dist
-            print('Distance: ', dist_str)
-            
-            # return jsonify(result=dist_str)
-            
+        # Run forward pass to calculate embeddings
+        feed_dict = { images_placeholder: images, phase_train_placeholder:False }
+        emb = sess.run(embeddings, feed_dict=feed_dict)
+    
+        # nrof_images = len(args.image_files)
+        dist = np.sqrt(np.sum(np.square(np.subtract(emb[0,:], emb[1,:]))))
+
+        dist_str = '%1.4f' % dist
+        print('Distance: ', dist_str)            
 
     return jsonify(result=dist_str)
 
@@ -105,6 +102,9 @@ def load_and_align_data(image_paths):
 
 
 def main(args):
+    model_dir = '/Users/zouying/Models/pretrained_models/Facenet/20170216-091149'
+    face_models.load_model(sess, model_dir)
+
     app.run(host=args.host, port=args.port)
 
 

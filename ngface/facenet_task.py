@@ -4,8 +4,8 @@ import tensorflow as tf
 import numpy as np
 from scipy import misc
 from facenet.align import detect_face
-from ngface.session import get_session
-from ngface.graph import get_graph
+from ngface.tfsession import get_session
+from ngface.tfgraph import get_graph
 from ngface.utils import prewhiten
 
 

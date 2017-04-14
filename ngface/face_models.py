@@ -1,8 +1,10 @@
 # -*- coding: utf8 -*-
 
+import time
 import os
 import re
 import tensorflow as tf
+from ngface import tfgraph
 
 
 def get_model_filenames(model_dir):
@@ -31,6 +33,9 @@ def load_model(sess, model_dir):
     """Load facenet model
     """
 
+    # measure time used for loading model
+    start = time.time()
+
     model_dir_exp = os.path.expanduser(model_dir)
     meta_file, ckpt_file = get_model_filenames(model_dir)
     meta_file_full_path = os.path.join(model_dir_exp, meta_file)
@@ -39,11 +44,11 @@ def load_model(sess, model_dir):
     print('Model ckpt file: ', ckpt_file_full_path)
     print('Loading models. Waiting...')
 
-    from ngface.graph import get_graph
+    from ngface.tfgraph import get_graph
     g = get_graph()
     with g.as_default():
         saver = tf.train.import_meta_graph(meta_file_full_path)
         saver.restore(sess, ckpt_file_full_path)
 
-    print('Models loaded.')
+    print('Models loaded. time_used: ', time.time()-start)
 
