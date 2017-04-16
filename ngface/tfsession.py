@@ -1,11 +1,14 @@
 # -*- coding: utf8 -*-
 
+
+import os
 import tensorflow as tf
 from face_models import load_model
 from ngface.tfgraph import get_graph
 
 _sess = None
-_model_path = "/home/zouying/Models/pretrained_models/Facenet/20170216-091149"
+_model_path = "~/Models/pretrained_models/Facenet/20170216-091149"
+
 
 def init_session():
     global _sess
@@ -13,7 +16,8 @@ def init_session():
     # single session for facenet
     _sess = tf.Session(graph=get_graph())
     # load_model(sess, model_dir)
-    load_model(_sess, _model_path)
+    exp_model_path = os.path.expanduser(_model_path)
+    load_model(_sess, exp_model_path)
 
 
 def get_session():
