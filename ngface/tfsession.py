@@ -5,7 +5,7 @@ from face_models import load_model
 from ngface.tfgraph import get_graph
 
 _sess = None
-_model_path = "/Users/zouying/Models/pretrained_models/Facenet/20170216-091149"
+_model_path = "/home/zouying/Models/pretrained_models/Facenet/20170216-091149"
 
 def init_session():
     global _sess

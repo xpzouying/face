@@ -16,11 +16,15 @@ from flask import Flask, jsonify, Response
 from ngface.utils import prewhiten
 from facenet.align import detect_face
 from ngface import face_models
-from ngface import tfgraph
+from ngface import tfgraph, tfsession
+from ngface import caffe_model
+
 
 
 graph = tfgraph.get_graph()
-sess = tf.Session(graph=graph)
+# sess = tf.Session(graph=graph)
+sess = tfsession.get_session()
+
 app = Flask(__name__)
 
 
@@ -41,13 +45,6 @@ def verify():
 
     dist_str = ''
     with graph.as_default():
-        # model_dir = '/Users/zouying/Models/pretrained_models/Facenet/20170216-091149'
-        # meta_file, ckpt_file = face_models.get_model_filenames(model_dir)
-
-        # print('Meta file: %s' % meta_file)
-        # print('Checkpoint file: %s' % ckpt_file)
-        # load_model(sess, model_dir, meta_file, ckpt_file)
-
         # Get input and output tensors
         images_placeholder = graph.get_tensor_by_name("input:0")
         embeddings = graph.get_tensor_by_name("embeddings:0")
@@ -74,13 +71,17 @@ def load_and_align_data(image_paths):
     threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
     factor = 0.709 # scale factor
     
-    print('Creating networks and loading parameters')
-    with tf.Graph().as_default():
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
-        sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
-        with sess.as_default():
-            pnet, rnet, onet = detect_face.create_mtcnn(sess, None)
+    # print('Creating networks and loading parameters')
+    # with tf.Graph().as_default():
+    #     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
+    #     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
+    #     with sess.as_default():
+    #         pnet, rnet, onet = detect_face.create_mtcnn(sess, None)
   
+    pnet = caffe_model.get_pnet()
+    rnet = caffe_model.get_rnet()
+    onet = caffe_model.get_onet()
+
     nrof_samples = len(image_paths)
     img_list = [None] * nrof_samples
     for i in xrange(nrof_samples):
@@ -102,8 +103,12 @@ def load_and_align_data(image_paths):
 
 
 def main(args):
-    model_dir = '/Users/zouying/Models/pretrained_models/Facenet/20170216-091149'
-    face_models.load_model(sess, model_dir)
+    # init models
+    # init caffe model
+    caffe_model.init_caffe_model()
+    # init tensorflow model
+    # model_dir = '/home/zouying/Models/pretrained_models/Facenet/20170216-091149'
+    # face_models.load_model(sess, model_dir)
 
     app.run(host=args.host, port=args.port)
 
