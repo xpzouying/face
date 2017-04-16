@@ -12,12 +12,13 @@ import argparse
 import tensorflow as tf
 import numpy as np
 from scipy import misc
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, Response, request
 from ngface.utils import prewhiten
 from facenet.align import detect_face
 from ngface import face_models
 from ngface import tfgraph, tfsession
 from ngface import caffe_model
+from ngface import utils
 
 
 
@@ -28,20 +29,27 @@ sess = tfsession.get_session()
 app = Flask(__name__)
 
 
+@app.route('/')
+@app.route('/index')
+def index():
+    msg = 'curl -X POST -F "img1=@img1.jpg" -F "img2=@img2.jpg"' \
+          ' \'http://192.168.31.188:8080/verify\''
+
+    return jsonify(message=msg)
+
+
 @app.route('/version')
 def version():
     return jsonify(version='ngface version 0.1')
 
 
-@app.route('/verify')
+@app.route('/verify', methods=['POST'])
 def verify():
-    image_paths = [
-        '/tmp/1.jpg',
-        '/tmp/2.jpg'
-    ]
-    images = load_and_align_data(image_paths)
 
-    print(images)
+    # read image from request
+    img_list = utils.get_images_from_request(request.files, ['img1', 'img2'])
+
+    np_images = load_and_align_data(img_list)
 
     dist_str = ''
     with graph.as_default():
@@ -51,11 +59,12 @@ def verify():
         phase_train_placeholder = graph.get_tensor_by_name("phase_train:0")
 
         # Run forward pass to calculate embeddings
-        feed_dict = { images_placeholder: images, phase_train_placeholder:False }
+        feed_dict = {images_placeholder: np_images,
+                     phase_train_placeholder: False}
         emb = sess.run(embeddings, feed_dict=feed_dict)
     
         # nrof_images = len(args.image_files)
-        dist = np.sqrt(np.sum(np.square(np.subtract(emb[0,:], emb[1,:]))))
+        dist = np.sqrt(np.sum(np.square(np.subtract(emb[0, :], emb[1, :]))))
 
         dist_str = '%1.4f' % dist
         print('Distance: ', dist_str)            
@@ -63,29 +72,20 @@ def verify():
     return jsonify(result=dist_str)
 
 
-def load_and_align_data(image_paths):
+def load_and_align_data(img_list):
 
     image_size = 160
     margin = 44
     minsize = 20 # minimum size of face
     threshold = [ 0.6, 0.7, 0.7 ]  # three steps's threshold
     factor = 0.709 # scale factor
-    
-    # print('Creating networks and loading parameters')
-    # with tf.Graph().as_default():
-    #     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
-    #     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
-    #     with sess.as_default():
-    #         pnet, rnet, onet = detect_face.create_mtcnn(sess, None)
-  
+
     pnet = caffe_model.get_pnet()
     rnet = caffe_model.get_rnet()
     onet = caffe_model.get_onet()
 
-    nrof_samples = len(image_paths)
-    img_list = [None] * nrof_samples
-    for i in xrange(nrof_samples):
-        img = misc.imread(os.path.expanduser(image_paths[i]))
+    np_images = []
+    for img in img_list:
         img_size = np.asarray(img.shape)[0:2]
         bounding_boxes, _ = detect_face.detect_face(img, minsize, pnet, rnet, onet, threshold, factor)
         det = np.squeeze(bounding_boxes[0,0:4])
@@ -97,8 +97,9 @@ def load_and_align_data(image_paths):
         cropped = img[bb[1]:bb[3],bb[0]:bb[2],:]
         aligned = misc.imresize(cropped, (image_size, image_size), interp='bilinear')
         prewhitened = prewhiten(aligned)
-        img_list[i] = prewhitened
-    images = np.stack(img_list)
+        np_images.append(prewhitened)
+
+    images = np.stack(np_images)    
     return images
 
 
@@ -106,10 +107,6 @@ def main(args):
     # init models
     # init caffe model
     caffe_model.init_caffe_model()
-    # init tensorflow model
-    # model_dir = '/home/zouying/Models/pretrained_models/Facenet/20170216-091149'
-    # face_models.load_model(sess, model_dir)
-
     app.run(host=args.host, port=args.port)
 
 

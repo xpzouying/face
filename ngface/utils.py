@@ -1,6 +1,9 @@
 # -*- coding: utf8 -*-
 
 import numpy as np
+import StringIO
+# from PIL import Image
+from scipy import misc
 
 
 def prewhiten(x):
@@ -13,3 +16,20 @@ def prewhiten(x):
     y = np.multiply(np.subtract(x, mean), 1/std_adj)
     return y
 
+
+def get_images_from_request(request_file, names):
+    """get pillow images from flask request
+
+    @input: request_file: request.files
+    @input: names: image name list for read
+    @output: type ndarray. The array obtained by reading the image.
+    """
+
+    img_list = []
+    for name in names:
+        # get upload file
+        f = request_file.get(name)
+        img = misc.imread(f)
+        img_list.append(img)
+
+    return img_list
