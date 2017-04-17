@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import os
 import sys
+import time
 import argparse
 import tensorflow as tf
 import numpy as np
@@ -45,6 +46,8 @@ def version():
 
 @app.route('/verify', methods=['POST'])
 def verify():
+    # verify time_used
+    start = time.time()
 
     # read image from request
     img_list = utils.get_images_from_request(request.files, ['img1', 'img2'])
@@ -52,6 +55,7 @@ def verify():
     np_images = load_and_align_data(img_list)
 
     dist_str = ''
+    dist = 0
     with graph.as_default():
         # Get input and output tensors
         images_placeholder = graph.get_tensor_by_name("input:0")
@@ -62,14 +66,18 @@ def verify():
         feed_dict = {images_placeholder: np_images,
                      phase_train_placeholder: False}
         emb = sess.run(embeddings, feed_dict=feed_dict)
-    
+
         # nrof_images = len(args.image_files)
         dist = np.sqrt(np.sum(np.square(np.subtract(emb[0, :], emb[1, :]))))
 
         dist_str = '%1.4f' % dist
-        print('Distance: ', dist_str)            
+        print('Distance: ', dist_str)
+        threshold = 0.9
+        print('Threshold: ', threshold)
 
-    return jsonify(result=dist_str)
+    time_used = time.time() - start
+    return jsonify(is_same_person=str(dist<threshold),
+                   time_used=str(time_used))
 
 
 def load_and_align_data(img_list):
