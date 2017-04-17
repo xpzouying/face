@@ -7,7 +7,7 @@
 
 提供：
 - [x] 比对/verify
-- [ ]人脸检测并截取
+- [ ] 人脸检测并截取
 - [ ] VIP识别
 - [ ] 告警
 
@@ -15,7 +15,8 @@
 本文源码链接为：[https://github.com/xpzouying/face](https://github.com/xpzouying/face)
 
 目前版本处于初级阶段，有任何问题可以联系我进行交流。
-> email: xpzouying@gmail.com
+> email: xpzouying@gmail.com  
+> 系列文章链接： [https://xpzouying.github.io//build-facenet-step-by-step-02-create-webservice/](https://xpzouying.github.io//build-facenet-step-by-step-02-create-webservice/)
 
 
 # 目标 #
@@ -30,10 +31,10 @@
 
 两张图片
 > 1.jpg  
-> ![1.jpg](/images/zy/verify_compare_1.jpg)
+> ![1.jpg](/images/verify_compare_1.jpg)
 
 > 2.jpg:  
-> ![2.jpg](/images/zy/verify_compare_2.jpg)
+> ![2.jpg](/images/verify_compare_2.jpg)
 
 
 比对结果
