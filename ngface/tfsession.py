@@ -3,7 +3,7 @@
 
 import os
 import tensorflow as tf
-from face_models import load_model
+from ngface.face_models import load_model
 from ngface.tfgraph import get_graph
 
 _sess = None
