@@ -1,0 +1,7 @@
+HTTP:
+  host: localhost
+  port: 8080
+
+Model_Dir:
+  detect: ./models/mtcnn_detect
+  verify: ~/Models/pretrained_models/Facenet/20170216-091149

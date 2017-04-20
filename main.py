@@ -7,37 +7,57 @@ from __future__ import print_function
 
 import argparse
 import sys
+import yaml
 
 from ngface import caffe_model
 from ngface import app
 
 
-def main(args):
-    # init models
-    # init caffe model
-    caffe_model.init_caffe_model(args.model_dir)
-
-    app.run(host=args.host, port=args.port)
-
-
-def parse_arguments(argv):
-    """Init argvs and parse
+def yaml_config_example():
+    """Return yaml config message
 
     """
-    parser = argparse.ArgumentParser()
 
-    parser.add_argument('--host', type=str, default="127.0.0.1",
-                        help="Listen host. Default is 127.0.0.1")
-    parser.add_argument('--port', type=int, default=8080,
-                        help="Listen port. Default is 8080")
-    parser.add_argument('--model_dir', type=str,
-                        default='./models/mtcnn_detect',
-                        help="Directory of models")
+    return """Please add *config.yml*, and config it like this,
+    HTTP:
+        host: localhost
+        port: 8080
 
-    return parser.parse_args(argv)
-
+    Model_Path:
+        detect: ./models/mtcnn_detect
+        verify: ~/Models/pretrained_models/Facenet/20170216-091149
+    """
 
 if __name__ == '__main__':
-    arg_parser = parse_arguments(sys.argv[1:])
+    # read config file
+    with open('config.yml') as f:
+        conf = yaml.load(f.read())
 
-    main(arg_parser)
+    # read related config
+    det_dir = conf.get('Model_Dir').get('detect')
+    if det_dir is None:
+        print(yaml_config_example())
+
+    host = conf.get('HTTP').get('host')
+    if host is None:
+        host = 'localhost'
+
+    port = conf.get('HTTP').get('port')
+    if port is None:
+        port = "8080"
+
+
+    # start message
+    start_message = '[*] Listen {host}:{port}.' \
+        '\nDetect model path={det_dir}\n'.format(
+            host=host,
+            port=port,
+            det_dir=det_dir
+        )
+    print(start_message)
+
+    # init models
+    # init caffe model
+    caffe_model.init_caffe_model(det_dir)
+
+    app.run(host=host, port=port)
