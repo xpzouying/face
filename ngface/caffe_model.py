@@ -2,8 +2,10 @@
 
 
 import time
+
 import tensorflow as tf
-from facenet.align import detect_face
+
+from tfcore import detect_face
 
 
 # pnet, rnet, onet is caffemodel
@@ -66,4 +68,3 @@ def get_onet():
         init_caffe_model()
 
     return _onet
-        

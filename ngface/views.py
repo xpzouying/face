@@ -1,18 +1,17 @@
 # -*- coding: utf8 -*-
 
 
-import cv2
 import json
 import time
-from ngface import app, utils
+
+import cv2
 import numpy as np
-from scipy import misc
-from ngface import caffe_model
 from flask import jsonify, request
-from ngface import tfgraph, tfsession
+from scipy import misc
+
+from ngface import app, caffe_model, facenet_task, tfgraph, tfsession, utils
 from ngface.utils import prewhiten
-from ngface import facenet_task
-from facenet.align import detect_face
+from tfcore import detect_face
 
 
 @app.route('/init')
