@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 """Open the first camera, detect faces 
 
@@ -43,4 +43,4 @@ while(True):
 
     plt.imshow(img)
     plt.draw()
-    plt.pause(1)
+    plt.pause(0.1)

@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 
 from __future__ import absolute_import
@@ -28,7 +28,7 @@ def yaml_config_example():
         verify: ~/Models/pretrained_models/Facenet/20170216-091149
     """
 
-if __name__ == '__main__':
+def main():
     # read config file
     with open('config.yml') as f:
         conf = yaml.load(f.read())
@@ -61,3 +61,7 @@ if __name__ == '__main__':
     caffe_model.init_caffe_model(det_dir)
 
     app.run(host=host, port=port)
+
+
+if __name__ == '__main__':
+    main()
