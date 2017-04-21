@@ -9,7 +9,8 @@ import numpy as np
 from flask import jsonify, request
 from scipy import misc
 
-from ngface import app, caffe_model, facenet_task, tfgraph, tfsession, utils
+from ngface import app, caffe_model, facenet_task,\
+    tfgraph, tfsession, utils, errors
 from ngface.utils import prewhiten
 from tfcore import detect_face
 
@@ -94,6 +95,15 @@ def detect():
     start = time.time()
 
     img_list = utils.get_images_from_request(request.files, ['img'])
+    if len(img_list) == 0:
+        # if img not in post
+        resp = {}
+        resp['faces'] = []
+        resp['time_used'] = time.time() - start
+        resp['error'] = str(errors.MissArgsError('img'))
+
+        return jsonify(resp)
+
     all_faces_info = facenet_task.detect_face_task(img_list[0])
     print('all faces info: ', all_faces_info)
 

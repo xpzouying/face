@@ -35,6 +35,9 @@ def get_images_from_request(request_file, names):
     for name in names:
         # get upload file
         f = request_file.get(name)
+        if f is None:
+            continue
+
         img = misc.imread(f)
         img_list.append(img)
 
