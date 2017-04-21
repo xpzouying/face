@@ -1,13 +1,27 @@
 # -*- coding: utf-8 -*-
 
-import tensorflow as tf
+import base64
+import sys
+
+import cv2
 import numpy as np
+import tensorflow as tf
 from scipy import misc
-from tfcore import detect_face
-from ngface.tfsession import get_session
-from ngface.tfgraph import get_graph
-from ngface.utils import prewhiten
+
 from ngface import caffe_model
+from ngface.tfgraph import get_graph
+from ngface.tfsession import get_session
+from ngface.utils import prewhiten
+from tfcore import detect_face
+
+if sys.version_info[0] == 3:
+    # python27
+    from io import StringIO
+else:
+    # python3
+    import StringIO  # python27
+
+
 
 
 def verify(align_imgs):
@@ -67,53 +81,17 @@ def detect_face_task(img):
         print('face position: ', face_position)
 
         # each face information, include position, face image
+        head_rect = face_position[:4].tolist()  # numpy array to python list
+        head_img = misc.toimage(img).crop(head_rect)
+        head_img_io = StringIO.StringIO()
+        head_img.save(head_img_io, format='JPEG')
+        head_img_b64 = base64.b64encode(head_img_io.getvalue())
+
+        # construct response
         face_info = {}
-        face_info['rect'] = face_position[:4].tolist()  # numpy array to python list
-        face_info['image'] = 'Not now'
+        face_info['rect'] = head_rect
+        face_info['image'] = head_img_b64
 
         all_faces.append(face_info)
 
     return all_faces
-
-
-# def load_and_align_images(imgs):
-#     """Align images to numpy array
-#     """
-#     image_size = 182
-#     margin = 44
-#     minsize = 20    # minimum size of face
-#     threshold = [0.6, 0.7, 0.7]  # three step's threshold
-#     factor = 0.709  # scale factor
-
-#     # g = get_graph()
-#     # with g.as_default():
-#     with tf.Graph().as_default():
-#         # sess = get_session()
-#         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=1.0)
-#         sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
-#         with sess.as_default():
-#             pnet, rnet, onet = detect_face.create_mtcnn(sess, None)
-
-#     img_list = [None] * len(imgs)
-#     index = 0
-#     for img in imgs:
-
-#         # img = misc.imread(path)
-#         img_size = np.asarray(img.shape)[0:2]
-#         bounding_boxes, _ = detect_face.detect_face(img, minsize, pnet, rnet, onet, threshold, factor)
-#         det = np.squeeze(bounding_boxes[0, 0:4])
-#         bb = np.zeros(4, dtype=np.int32)
-#         bb[0] = np.maximum(det[0] - margin / 2, 0)
-#         bb[1] = np.maximum(det[1] - margin / 2, 0)
-#         bb[2] = np.minimum(det[2] + margin / 2, img_size[1])
-#         bb[3] = np.minimum(det[3] + margin / 2, img_size[0])
-#         cropped = img[bb[1]:bb[3], bb[0]:bb[2], :]
-#         aligned = misc.imresize(cropped, (image_size, image_size), interp='bilinear')
-#         prewhitened = prewhiten(aligned)
-#         # img_list.append(prewhitened)
-#         img_list[index] = prewhitened
-#         index += 1
-
-#     images = np.stack(img_list)
-#     return images
-

@@ -3,12 +3,12 @@
 import numpy as np
 import sys
 
-if sys.version_info[0] == 3:
-    # python27
-    from io import StringIO
-else:
-    # python3
-    import StringIO  # python27
+# if sys.version_info[0] == 3:
+#     # python27
+#     from io import StringIO
+# else:
+#     # python3
+#     import StringIO  # python27
 from scipy import misc
 
 
